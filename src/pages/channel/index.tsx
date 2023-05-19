@@ -1,55 +1,46 @@
-import { Channel, ChannelList } from '@sendbird/uikit-react';
-import AddChannel from '@sendbird/uikit-react/ChannelList/components/AddChannel';
-import SendbirdProvider from '@sendbird/uikit-react/SendbirdProvider';
-import { ACCESS_TOKEN, APP_ID, NICKNAME, USER_ID } from 'const';
+import { BaseMessage, PreviousMessageListQueryParams } from '@sendbird/chat/message';
+import { ChannelProvider } from '@sendbird/uikit-react/Channel/context';
+import { ChannelListProvider } from '@sendbird/uikit-react/ChannelList/context';
+import sendbirdSelectors from '@sendbird/uikit-react/sendbirdSelectors';
+import useSendbirdStateContext from '@sendbird/uikit-react/useSendbirdStateContext';
+import CustomChannelList from 'components/channel/CustomChannelList';
+import CustomGroupChannel from 'components/channel/CustomGroupChannel';
 import { FC, useState } from 'react';
 
 const ChannelPage: FC = () => {
   const [currentChannelUrl, setCurrentChannelUrl] = useState('');
+  const store = useSendbirdStateContext();
+  const getGroupChannel = sendbirdSelectors.getGetGroupChannel(store);
+
+  const getPreviousMessageList = async (channelUrl: string): Promise<BaseMessage[]> => {
+    const channel = await getGroupChannel(channelUrl);
+    const params: PreviousMessageListQueryParams = { limit: 100 };
+    const query = channel.createPreviousMessageListQuery(params);
+
+    return await query.load();
+  };
+
+  const handleGetPreviousMessageList = () => {
+    return getPreviousMessageList(currentChannelUrl);
+  };
+
   return (
-    <div className="App">
-      <SendbirdProvider
-        appId={APP_ID}
-        userId={USER_ID}
-        nickname={NICKNAME}
-        accessToken={ACCESS_TOKEN}
-      >
-        <>
-          <div className="sendbird-app__channellist-wrap">
-            <AddChannel />
-            <ChannelList
-              renderHeader={renderHeader}
-              renderPlaceHolderEmptyList={renderPlaceHolderEmptyList}
-              onChannelSelect={channel => {
-                if (channel?.url) {
-                  setCurrentChannelUrl(channel.url);
-                }
-              }}
-            />
-          </div>
-          <div className="sendbird-app__conversation-wrap">
-            <Channel channelUrl={currentChannelUrl} />
-          </div>
-        </>
-      </SendbirdProvider>
-    </div>
+    <>
+      <button onClick={handleGetPreviousMessageList}>123</button>
+      <div style={{ display: 'flex' }}>
+        <ChannelListProvider>
+          <CustomChannelList setCurrentChannelUrl={setCurrentChannelUrl} />
+        </ChannelListProvider>
+        <ChannelProvider
+          channelUrl={currentChannelUrl}
+          isReactionEnabled={false}
+          showSearchIcon={true}
+        >
+          <CustomGroupChannel />
+        </ChannelProvider>
+      </div>
+    </>
   );
 };
 
 export default ChannelPage;
-
-const renderHeader = () => {
-  return (
-    <div>
-      <p>chat list</p>
-    </div>
-  );
-};
-
-const renderPlaceHolderEmptyList = () => {
-  return (
-    <div>
-      <p>empty chat</p>
-    </div>
-  );
-};
